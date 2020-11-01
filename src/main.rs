@@ -165,15 +165,20 @@ fn main() {
         for f in &seq.features {
             feat_count += 1;
             if f.kind==feature_kind!("CDS") {
-                genes.push(f.qualifier_values(qualifier_key!("protein_id"))
+                let gene = f.qualifier_values(qualifier_key!("protein_id"))
                     .next()
                     .unwrap()
-                    .to_string());
+                    .to_string()
+                    .replace('\n',"");
+                genes.push(gene);
 
-                descs.push(f.qualifier_values(qualifier_key!("product"))
+                let desc = f.qualifier_values(qualifier_key!("product"))
                     .next()
                     .unwrap()
-                    .to_string());
+                    .to_string()
+                    .replace('\n',"");
+                descs.push(desc);
+
                 locs.push(f.location.clone());
                 gene_count += 1;
             }
