@@ -121,6 +121,7 @@ fn print_seq(s: &str, t: SeqType) {
     }
 }
 
+// NOTE: n is type u16, so allowable input is 0..65535. 
 fn count_digits(mut n: u16) -> usize {
     let mut digits: usize = 1;
 
