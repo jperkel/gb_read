@@ -122,13 +122,8 @@ fn print_seq(s: &str, t: SeqType) {
 }
 
 fn count_digits(mut n: u16) -> usize {
-    let mut digits: usize = 0;
+    let mut digits: usize = 1;
 
-    if n < 10 {
-        return 1;
-    }
-
-    digits += 1; // account for the 1s place.
     while n > 0 {
         n = n/10;
         if n >= 1 {
@@ -238,7 +233,7 @@ fn main() {
                         print_seq(&peptide1, SeqType::Protein1);
                         println!("\nThree-letter code:");
                         print_seq(&peptide3, SeqType::Protein3);
-                        println!("Length: {}\n", n_codons);
+                        println!("Length: {} (including stop)\n", n_codons);
                     }
                 }
             }
