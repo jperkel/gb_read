@@ -1,6 +1,6 @@
 ## GB_READ: READ A GENBANK FILE IN RUST
 
-This code uses the [`gb-io` crate](https://github.com/dlesl/gb-io) for parsing a GenBank-formatted file. 
+This code uses the [`gb-io`](https://github.com/dlesl/gb-io) crate for parsing a GenBank-formatted file. 
 
 To use:
 1) Clone this GitHub repository (`git clone https://github.com/jperkel/gb_read.git`).
