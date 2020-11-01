@@ -112,13 +112,31 @@ fn print_seq(s: &str, t: SeqType) {
 
     for i in 0..(s.len()/linelen) {
         let myline = &s[i*linelen..(i*linelen)+linelen];
-        println!("{number:>0width$} {}", myline, number=(((i*linelen)/divisor))+1, width=3);
+        println!("{number:>0width$} {}", myline, number=(((i*linelen)/divisor))+1, width=count_digits(s.len() as u16));
     }
     // print whatever is left
     if s.len() % linelen != 0 {
         println!("{number:>0width$} {}", &s[s.len()-s.len()%linelen..s.len()],
-        number=((s.len()-s.len()%linelen))/divisor+1, width=3)
+        number=((s.len()-s.len()%linelen))/divisor+1, width=count_digits(s.len() as u16));
     }
+}
+
+fn count_digits(mut n: u16) -> usize {
+    let mut digits: usize = 0;
+
+    if n < 10 {
+        return 1;
+    }
+
+    digits += 1; // account for the 1s place.
+    while n > 0 {
+        n = n/10;
+        if n >= 1 {
+            digits += 1;
+        }
+    };
+
+    return digits;
 }
 
 fn main() {
@@ -199,12 +217,8 @@ fn main() {
 
             for f in &seq.features {
                 if f.kind==feature_kind!("CDS") {
-                    if f.qualifier_values(qualifier_key!("protein_id")).next(). unwrap() == genes[selection] {
-                        let s = 
-                            String::from_utf8(seq.extract_location(&locs[selection])
-                            .unwrap()
-                            .to_vec()
-                        )
+                    if f.qualifier_values(qualifier_key!("protein_id")).next().unwrap() == genes[selection] {
+                        let s = String::from_utf8(seq.extract_location(&locs[selection]).unwrap().to_vec())
                             .unwrap()
                             .to_ascii_uppercase();
 
