@@ -182,6 +182,7 @@ fn main() {
     let mut genes = Vec::<String>::new();
     let mut descs = Vec::<String>::new();
     let mut locs = Vec::<gb_io::seq::Location>::new();
+    let mut feature_map: HashMap<String, usize> = HashMap::new();
 
     for r in SeqReader::new(file) {
         let seq = r.unwrap();
@@ -193,6 +194,11 @@ fn main() {
 
         for f in &seq.features {
             feat_count += 1;
+
+            // count the different feature types. if a type hasn't been seen 
+            // before, set its value to zero and add 1
+            *feature_map.entry(f.kind.to_string()).or_insert(0) += 1;
+
             // collect protein_id, product, and location data for each "CDS", ie gene
             if f.kind == feature_kind!("CDS") {
                 let gene = f
@@ -215,10 +221,23 @@ fn main() {
                 gene_count += 1;
             }
         }
+        
         println!(
             "\nFound {} features, including {} genes.",
             feat_count, gene_count
         );
+
+        let mut l = 0;
+        for (key, _) in feature_map.iter() {
+            if key.len() > l { l = key.len(); }
+        }
+        l += 1;
+
+        for (key, count) in feature_map.iter() {
+            println!("{k:<0l$}: {}", count, k=key, l=l);
+        }
+
+        println!("");
         for i in 0..gene_count {
             println!("{}) {}: {}", i, genes[i], descs[i]);
         }
@@ -228,7 +247,7 @@ fn main() {
                 if gene_count == 1 { "0".to_string() }
                 else { format!("0-{}", gene_count-1) }
             };
-            print!("\nWhich would you like to view [{}]: ", range);
+            print!("\nWhich gene would you like to view [{}]: ", range);
             // flush buffer...
             io::stdout().flush().unwrap();
 
