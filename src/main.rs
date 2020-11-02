@@ -36,11 +36,11 @@ enum Translation {
 // given an input 'char', return a base equivalent
 fn lookup(x: char) -> usize {
     match x {
-        'T' => return 0,
-        'C' => return 1,
-        'A' => return 2,
-        'G' => return 3,
-        _ => return ERR_BAD_NT, // unknown base
+        'T' => 0,
+        'C' => 1,
+        'A' => 2,
+        'G' => 3,
+        _ => ERR_BAD_NT, // unknown base
     }
 }
 
@@ -95,8 +95,8 @@ fn translate(triplet: &str, t: Translation) -> String {
     // translate the codon into single-letter code
     let c = GENETIC_CODE.chars().nth(index).unwrap();
     match t {
-        Translation::OneLetter => return c.to_string(),
-        Translation::ThreeLetter => return three_letter_code[&c].to_string(),
+        Translation::OneLetter => c.to_string(),
+        Translation::ThreeLetter => three_letter_code[&c].to_string(),
     }
 }
 
@@ -142,13 +142,13 @@ fn count_digits(mut n: u16) -> usize {
     let mut digits: usize = 1;
 
     while n > 0 {
-        n = n / 10;
+        n /= 10;
         if n >= 1 {
             digits += 1;
         }
     }
 
-    return digits;
+    digits
 }
 
 fn main() {
@@ -241,8 +241,7 @@ fn main() {
             println!("You selected: {}", selection);
 
             for f in &seq.features {
-                if f.kind == feature_kind!("CDS") {
-                    if f.qualifier_values(qualifier_key!("protein_id"))
+                if f.kind == feature_kind!("CDS") && f.qualifier_values(qualifier_key!("protein_id"))
                         .next()
                         .unwrap()
                         == genes[selection]
@@ -272,7 +271,7 @@ fn main() {
                         print_seq(&peptide3, SeqType::Protein3);
                         println!("Length: {} (including stop)\n", n_codons);
                     }
-                }
+                
             }
         }
     }
