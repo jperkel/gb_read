@@ -212,7 +212,11 @@ fn main() {
         }
 
         if gene_count > 0 {
-            print!("\nWhich would you like to view [0-{}]: ", gene_count - 1);
+            let range = {
+                if gene_count == 1 { "0".to_string() }
+                else { format!("0-{}", gene_count-1) }
+            };
+            print!("\nWhich would you like to view [{}]: ", range);
             // flush buffer...
             io::stdout().flush().unwrap();
 
