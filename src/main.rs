@@ -255,3 +255,36 @@ fn main() {
         }
     }
 }
+
+
+// tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_translate_atg() {
+        assert_eq!(translate("ATG", Translation::ThreeLetter), "Met");
+    }
+
+    #[test]
+    fn test_translate_tag() {
+        assert_eq!(translate("TAG", Translation::ThreeLetter), "***");
+    }
+
+    #[test]
+    fn test_translate_ttt() {
+        assert_eq!(translate("TTT", Translation::OneLetter), "F");
+    }
+
+    #[test]
+    fn test_count_digits() {
+        assert_eq!(count_digits(10000), 5);
+    }
+
+    #[test]
+    fn test_count_digits2() {
+        assert_eq!(count_digits(2500), 4);
+    }
+}
+
