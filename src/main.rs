@@ -241,37 +241,36 @@ fn main() {
             println!("You selected: {}", selection);
 
             for f in &seq.features {
-                if f.kind == feature_kind!("CDS") && f.qualifier_values(qualifier_key!("protein_id"))
+                if f.kind == feature_kind!("CDS")
+                    && f.qualifier_values(qualifier_key!("protein_id"))
                         .next()
                         .unwrap()
                         == genes[selection]
-                    {
-                        let s = String::from_utf8(
-                            seq.extract_location(&locs[selection]).unwrap().to_vec(),
-                        )
-                        .unwrap()
-                        .to_ascii_uppercase();
+                {
+                    let s =
+                        String::from_utf8(seq.extract_location(&locs[selection]).unwrap().to_vec())
+                            .unwrap()
+                            .to_ascii_uppercase();
 
-                        println!("\nDNA sequence:");
-                        print_seq(&s, SeqType::DNA);
-                        println!("Length: {}\n", s.len());
+                    println!("\nDNA sequence:");
+                    print_seq(&s, SeqType::DNA);
+                    println!("Length: {}\n", s.len());
 
-                        let mut peptide1 = String::new();
-                        let mut peptide3 = String::new();
-                        let n_codons = s.len() / 3;
-                        for i in 0..n_codons {
-                            let codon = &s[i * 3..(i * 3) + 3]; // take a 3-base slice of the sequence
-                            peptide1.push_str(&translate(&codon, Translation::OneLetter)); // translate and add to the string
-                            peptide3.push_str(&translate(&codon, Translation::ThreeLetter));
-                            // translate and add to the string
-                        }
-                        println!("One-letter code:");
-                        print_seq(&peptide1, SeqType::Protein1);
-                        println!("\nThree-letter code:");
-                        print_seq(&peptide3, SeqType::Protein3);
-                        println!("Length: {} (including stop)\n", n_codons);
+                    let mut peptide1 = String::new();
+                    let mut peptide3 = String::new();
+                    let n_codons = s.len() / 3;
+                    for i in 0..n_codons {
+                        let codon = &s[i * 3..(i * 3) + 3]; // take a 3-base slice of the sequence
+                        peptide1.push_str(&translate(&codon, Translation::OneLetter)); // translate and add to the string
+                        peptide3.push_str(&translate(&codon, Translation::ThreeLetter));
+                        // translate and add to the string
                     }
-                
+                    println!("One-letter code:");
+                    print_seq(&peptide1, SeqType::Protein1);
+                    println!("\nThree-letter code:");
+                    print_seq(&peptide3, SeqType::Protein3);
+                    println!("Length: {} (including stop)\n", n_codons);
+                }
             }
         }
     }
