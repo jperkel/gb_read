@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate gb_io;
+extern crate regex;
 
 use std::collections::HashMap;
 use std::env;
@@ -9,6 +10,7 @@ use std::io::Write;
 use std::process;
 
 use gb_io::reader::SeqReader;
+use regex::Regex;
 
 // Translation table 11 from https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi.
 // Indexing into this array is as follows:
@@ -78,6 +80,12 @@ fn three_letter_translate(aa: char) -> String {
     .copied()
     .collect();
 
+    // check input.
+    let re = Regex::new(r"[A-Z*]").unwrap();
+    if ! re.is_match(&aa.to_string()) {
+        println!("Invalid amino acid: {}", aa);
+        process::exit(1);
+    }
     three_letter_map[&aa].to_string()
 }
 
@@ -312,6 +320,11 @@ mod tests {
     #[test]
     fn test_translate_sel() {
         assert_eq!(three_letter_translate('U'), "Sel");
+    }
+
+    #[test]
+    fn translate_bad_aa() {
+        assert_eq!(three_letter_translate('J'), "???");
     }
 
     #[test]
