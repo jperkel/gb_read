@@ -110,14 +110,22 @@ fn print_seq(s: &str, t: SeqType) {
         SeqType::Protein3 => 3,
     };
 
-    for i in 0..(s.len()/linelen) {
-        let myline = &s[i*linelen..(i*linelen)+linelen];
-        println!("{number:>0width$} {}", myline, number=(((i*linelen)/divisor))+1, width=count_digits(s.len() as u16));
-    }
-    // print whatever is left
+    // how many lines to print
+    let mut nlines = s.len()/linelen;
+    // if there's a remainder, add one line.
     if s.len() % linelen != 0 {
-        println!("{number:>0width$} {}", &s[s.len()-s.len()%linelen..s.len()],
-        number=((s.len()-s.len()%linelen))/divisor+1, width=count_digits(s.len() as u16));
+        nlines += 1;
+    }
+
+    // print the lines
+    for i in 0..nlines {
+        let start = i*linelen;
+        let mut end = (i*linelen) + linelen;
+        if end > s.len() {
+            end = s.len();
+        }
+        let myline = &s[start..end];
+        println!("{number:>0width$} {}", myline, number=((start/divisor))+1, width=count_digits(s.len() as u16));
     }
 }
 
@@ -165,6 +173,7 @@ fn main() {
 
         for f in &seq.features {
             feat_count += 1;
+            // collect protein_id, product, and location data for each "CDS", ie gene
             if f.kind==feature_kind!("CDS") {
                 let gene = f.qualifier_values(qualifier_key!("protein_id"))
                     .next()
