@@ -44,9 +44,8 @@ fn lookup(x: char) -> usize {
     }
 }
 
-// translate a codon into its corresponding amino acid
-fn translate(triplet: &str, t: Translation) -> String {
-    let three_letter_code: HashMap<char, &str> = [
+fn three_letter_translate(aa: char) -> String {
+    let three_letter_map: HashMap<char, &str> = [
         ('A', "Ala"),
         ('B', "???"),
         ('C', "Cys"),
@@ -79,6 +78,11 @@ fn translate(triplet: &str, t: Translation) -> String {
     .copied()
     .collect();
 
+    three_letter_map[&aa].to_string()
+}
+
+// translate a codon into its corresponding amino acid
+fn translate(triplet: &str, t: Translation) -> String {
     let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i, base) in triplet.chars().enumerate() {
@@ -96,7 +100,7 @@ fn translate(triplet: &str, t: Translation) -> String {
     let c = GENETIC_CODE.chars().nth(index).unwrap();
     match t {
         Translation::OneLetter => c.to_string(),
-        Translation::ThreeLetter => three_letter_code[&c].to_string(),
+        Translation::ThreeLetter => three_letter_translate(c),
     }
 }
 
@@ -298,6 +302,16 @@ mod tests {
     #[test]
     fn test_translate_ttt() {
         assert_eq!(translate("TTT", Translation::OneLetter), "F");
+    }
+
+    #[test]
+    fn test_translate_pyr() {
+        assert_eq!(three_letter_translate('O'), "Pyr");
+    }
+
+    #[test]
+    fn test_translate_sel() {
+        assert_eq!(three_letter_translate('U'), "Sel");
     }
 
     #[test]
