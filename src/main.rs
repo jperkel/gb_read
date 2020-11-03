@@ -2,6 +2,7 @@
 extern crate gb_io;
 extern crate regex;
 
+use std::cmp;
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
@@ -134,16 +135,14 @@ fn print_seq(s: &str, t: SeqType) {
 
     // print the lines
     for i in 0..nlines {
-        let start = i * linelen;
-        let mut end = (i * linelen) + linelen;
-        if end > s.len() {
-            end = s.len();
-        }
-        let myline = &s[start..end];
+        let begin = i * linelen;
+        // adjust 'end' if near the end of the sequence
+        let end = cmp::min ((i * linelen) + linelen, s.len());
+        let myline = &s[begin..end];
         println!(
             "{number:>0width$} {}",
             myline,
-            number = (start / divisor) + 1,
+            number = (begin / divisor) + 1,
             width = count_digits(s.len() as u16)
         );
     }
@@ -182,7 +181,10 @@ fn main() {
     let mut genes = Vec::<String>::new();
     let mut descs = Vec::<String>::new();
     let mut locs = Vec::<gb_io::seq::Location>::new();
+    // variable to hold counts of each type of feature, eg, "("CDS", 5)"
     let mut feature_map: HashMap<String, usize> = HashMap::new();
+    // variable to hold length of the longest feature type, for printing
+    let mut feat_len = 0; 
 
     for r in SeqReader::new(file) {
         let seq = r.unwrap();
@@ -198,6 +200,8 @@ fn main() {
             // count the different feature types. if a type hasn't been seen 
             // before, set its value to zero and add 1
             *feature_map.entry(f.kind.to_string()).or_insert(0) += 1;
+            
+            if f.kind.to_string().len() > feat_len { feat_len = f.kind.to_string().len(); }
 
             // collect protein_id, product, and location data for each "CDS", ie gene
             if f.kind == feature_kind!("CDS") {
@@ -227,14 +231,8 @@ fn main() {
             feat_count, gene_count
         );
 
-        let mut l = 0;
-        for (key, _) in feature_map.iter() {
-            if key.len() > l { l = key.len(); }
-        }
-        l += 1;
-
         for (key, count) in feature_map.iter() {
-            println!("{k:<0l$}: {}", count, k=key, l=l);
+            println!("{k:<0l$}: {}", count, k=key, l=feat_len+1);
         }
 
         println!("");
