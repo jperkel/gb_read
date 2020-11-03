@@ -31,7 +31,7 @@ enum SeqType {
 }
 
 // enumeration of translation types
-enum Translation {
+enum TranslationType {
     OneLetter,
     ThreeLetter,
 }
@@ -91,7 +91,7 @@ fn three_letter_translate(aa: char) -> String {
 }
 
 // translate a codon into its corresponding amino acid
-fn translate(triplet: &str, t: Translation) -> String {
+fn translate(triplet: &str, t: TranslationType) -> String {
     let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i, base) in triplet.chars().enumerate() {
@@ -108,8 +108,8 @@ fn translate(triplet: &str, t: Translation) -> String {
     // translate the codon into single-letter code
     let c = GENETIC_CODE.chars().nth(index).unwrap();
     match t {
-        Translation::OneLetter => c.to_string(),
-        Translation::ThreeLetter => three_letter_translate(c),
+        TranslationType::OneLetter => c.to_string(),
+        TranslationType::ThreeLetter => three_letter_translate(c),
     }
 }
 
@@ -294,8 +294,8 @@ fn main() {
                     let n_codons = s.len() / 3;
                     for i in 0..n_codons {
                         let codon = &s[i * 3..(i * 3) + 3]; // take a 3-base slice of the sequence
-                        peptide1.push_str(&translate(&codon, Translation::OneLetter)); // translate and add to the string
-                        peptide3.push_str(&translate(&codon, Translation::ThreeLetter));
+                        peptide1.push_str(&translate(&codon, TranslationType::OneLetter)); // translate and add to the string
+                        peptide3.push_str(&translate(&codon, TranslationType::ThreeLetter));
                         // translate and add to the string
                     }
                     println!("One-letter code:");
@@ -316,17 +316,17 @@ mod tests {
 
     #[test]
     fn test_translate_atg() {
-        assert_eq!(translate("ATG", Translation::ThreeLetter), "Met");
+        assert_eq!(translate("ATG", TranslationType::ThreeLetter), "Met");
     }
 
     #[test]
     fn test_translate_tag() {
-        assert_eq!(translate("TAG", Translation::ThreeLetter), "***");
+        assert_eq!(translate("TAG", TranslationType::ThreeLetter), "***");
     }
 
     #[test]
     fn test_translate_ttt() {
-        assert_eq!(translate("TTT", Translation::OneLetter), "F");
+        assert_eq!(translate("TTT", TranslationType::OneLetter), "F");
     }
 
     #[test]
