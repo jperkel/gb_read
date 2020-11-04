@@ -23,20 +23,10 @@ const GENETIC_CODE: &str = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVV
 // ERR_BAD_NT is an error value for an invalid nucleotide
 const ERR_BAD_NT: usize = 99;
 
-// enumeration of genetic sequence types
-enum SeqType {
-    DNA,
-    Protein1, // single-letter amino acid code
-    Protein3, // triple-letter amino acid code
-}
 
-// enumeration of translation types
-enum TranslationType {
-    OneLetter,
-    ThreeLetter,
-}
-
-// given an input 'char', return a base equivalent
+// map a base for indexing the GENETIC_CODE string
+// x (char): base to look up
+// returns: usize
 fn lookup(x: char) -> usize {
     match x {
         'T' => 0,
@@ -47,7 +37,10 @@ fn lookup(x: char) -> usize {
     }
 }
 
-fn three_letter_translate(aa: char) -> String {
+// get the three-letter equivalent of an amino acid
+// aa (char): the amino acid to translate, eg 'A' -> "Ala"
+// returns: String
+fn three_letter_code(aa: char) -> String {
     let three_letter_map: HashMap<char, &str> = [
         ('A', "Ala"),
         ('B', "???"),
@@ -91,7 +84,9 @@ fn three_letter_translate(aa: char) -> String {
 }
 
 // translate a codon into its corresponding amino acid
-fn translate(triplet: &str, t: TranslationType) -> String {
+// triplet (&str): a three-letter codon eg "ATG"
+// returns: char
+fn translate(triplet: &str) -> char {
     let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i, base) in triplet.chars().enumerate() {
@@ -107,24 +102,17 @@ fn translate(triplet: &str, t: TranslationType) -> String {
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
     // translate the codon into single-letter code
     let c = GENETIC_CODE.chars().nth(index).unwrap();
-    match t {
-        TranslationType::OneLetter => c.to_string(),
-        TranslationType::ThreeLetter => three_letter_translate(c),
-    }
+
+    c
 }
 
-// print a pretty sequence, 72 bases per line, plus base numbering
-// s: sequence
-// t: sequence type (DNA, Protein1 or Protein3)
-fn print_seq(s: &str, t: SeqType) {
-    let linelen = 72;
-
-    let divisor = match t {
-        // if we're printing a Protein3, count amino acids, not bases,
-        // so divide by 3
-        SeqType::DNA | SeqType::Protein1 => 1,
-        SeqType::Protein3 => 3,
-    };
+// print a pretty DNA sequence and its translation, plus line numbering
+// eg: 001 MetSerIle...
+//     001 ATGAGTATT... 
+//
+// s (&str): DNA sequence to print
+fn print_seq(s: &str) {
+    let linelen = 72; // print 72 bases per line (24 amino acids)
 
     // how many lines to print
     let mut nlines = s.len() / linelen;
@@ -136,22 +124,43 @@ fn print_seq(s: &str, t: SeqType) {
     // how wide does the numbering block need to be?
     let ndigits = count_digits(s.len() as u16);
 
-    // print the lines
+    // get the translation of this sequence
+    let mut peptide3 = String::new();
+    let n_codons = s.len() / 3;
+    for i in 0..n_codons {
+        let codon = &s[i * 3..(i * 3) + 3]; // take a 3-base slice of the sequence
+        let aa = translate(&codon);
+        // translate and add to the string
+        peptide3.push_str(&three_letter_code(aa));
+    }
+
     for i in 0..nlines {
         let begin = i * linelen;
         // adjust 'end' if near the end of the sequence
         let end = cmp::min((i * linelen) + linelen, s.len());
-        let myline = &s[begin..end];
+        
+        // print translation
         println!(
             "{number:>0width$} {}",
-            myline,
-            number = (begin / divisor) + 1,
+            &peptide3[begin..end],
+            number = (begin / 3) + 1, // divide by 3 b/c 3 bases/amino acid
+            width = ndigits
+        );
+
+        // print DNA
+        println!(
+            "{number:>0width$} {}\n",
+            &s[begin..end],
+            number = (begin) + 1,
             width = ndigits
         );
     }
 }
 
-// returns the number of digits in a number
+// count the digits in a number
+// n (u16): number to count
+// returns: usize
+//
 // NOTE: n is type u16, so allowable input is 0..65535.
 fn count_digits(mut n: u16) -> usize {
     let mut digits: usize = 1;
@@ -167,9 +176,10 @@ fn count_digits(mut n: u16) -> usize {
 }
 
 fn main() {
+    // file to process; user can override on the command line
     let mut filename = "nc_005816.gb";
 
-    // the user can provide another file on the command line
+    // check to see if user provided an alternate file name...
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
         filename = &args[1];
@@ -182,12 +192,17 @@ fn main() {
     println!("\nReading records from file '{}'...", filename);
 
     let file = File::open(filename).unwrap();
+
+    // genes, descs and locs are vectors of Strings to hold gene names,
+    // gene descriptions, and gene locations, respectively
     let mut genes = Vec::<String>::new();
     let mut descs = Vec::<String>::new();
     let mut locs = Vec::<gb_io::seq::Location>::new();
-    // variable to hold counts of each type of feature, eg, "("CDS", 5)"
+
+    // a HashMap holding counts of each feature type, eg, "("CDS", 5)"
     let mut feature_map: HashMap<String, usize> = HashMap::new();
-    // variable to hold length of the longest feature type, for printing
+
+    // length of the longest feature type, for printing
     let mut feat_len = 0;
 
     for r in SeqReader::new(file) {
@@ -280,8 +295,7 @@ fn main() {
                 process::exit(1);
             }
 
-            println!("You selected: {}", selection);
-
+            // find the requested gene and print it.
             for f in &seq.features {
                 if f.kind == feature_kind!("CDS")
                     && f.qualifier_values(qualifier_key!("protein_id"))
@@ -294,24 +308,10 @@ fn main() {
                             .unwrap()
                             .to_ascii_uppercase();
 
-                    println!("\nDNA sequence:");
-                    print_seq(&s, SeqType::DNA);
-                    println!("Length: {}\n", s.len());
-
-                    let mut peptide1 = String::new();
-                    let mut peptide3 = String::new();
-                    let n_codons = s.len() / 3;
-                    for i in 0..n_codons {
-                        let codon = &s[i * 3..(i * 3) + 3]; // take a 3-base slice of the sequence
-                        peptide1.push_str(&translate(&codon, TranslationType::OneLetter)); // translate and add to the string
-                        peptide3.push_str(&translate(&codon, TranslationType::ThreeLetter));
-                        // translate and add to the string
-                    }
-                    println!("One-letter code:");
-                    print_seq(&peptide1, SeqType::Protein1);
-                    println!("\nThree-letter code:");
-                    print_seq(&peptide3, SeqType::Protein3);
-                    println!("Length: {} (including stop)\n", n_codons);
+                    println!("\n{}: {}", genes[selection], descs[selection]);
+                    print_seq(&s);
+                    println!("DNA:     {:>5} bases", s.len());
+                    println!("Protein: {:>5} amino acids\n", s.len()/3)
                 }
             }
         }
@@ -325,32 +325,32 @@ mod tests {
 
     #[test]
     fn test_translate_atg() {
-        assert_eq!(translate("ATG", TranslationType::ThreeLetter), "Met");
+        assert_eq!(translate("ATG"), 'M');
     }
 
     #[test]
     fn test_translate_tag() {
-        assert_eq!(translate("TAG", TranslationType::ThreeLetter), "***");
+        assert_eq!(translate("TAG"), '*');
     }
 
     #[test]
     fn test_translate_ttt() {
-        assert_eq!(translate("TTT", TranslationType::OneLetter), "F");
+        assert_eq!(translate("TTT"), 'F');
     }
 
     #[test]
     fn test_translate_pyr() {
-        assert_eq!(three_letter_translate('O'), "Pyr");
+        assert_eq!(three_letter_code('O'), "Pyr");
     }
 
     #[test]
     fn test_translate_sel() {
-        assert_eq!(three_letter_translate('U'), "Sel");
+        assert_eq!(three_letter_code('U'), "Sel");
     }
 
     #[test]
     fn translate_bad_aa() {
-        assert_eq!(three_letter_translate('J'), "???");
+        assert_eq!(three_letter_code('J'), "???");
     }
 
     #[test]
