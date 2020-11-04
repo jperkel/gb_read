@@ -83,7 +83,7 @@ fn three_letter_translate(aa: char) -> String {
 
     // check input.
     let re = Regex::new(r"[A-Z*]").unwrap();
-    if ! re.is_match(&aa.to_string()) {
+    if !re.is_match(&aa.to_string()) {
         println!("Invalid amino acid: {}", aa);
         process::exit(1);
     }
@@ -133,21 +133,25 @@ fn print_seq(s: &str, t: SeqType) {
         nlines += 1;
     }
 
+    // how wide does the numbering block need to be?
+    let ndigits = count_digits(s.len() as u16);
+
     // print the lines
     for i in 0..nlines {
         let begin = i * linelen;
         // adjust 'end' if near the end of the sequence
-        let end = cmp::min ((i * linelen) + linelen, s.len());
+        let end = cmp::min((i * linelen) + linelen, s.len());
         let myline = &s[begin..end];
         println!(
             "{number:>0width$} {}",
             myline,
             number = (begin / divisor) + 1,
-            width = count_digits(s.len() as u16)
+            width = ndigits
         );
     }
 }
 
+// returns the number of digits in a number
 // NOTE: n is type u16, so allowable input is 0..65535.
 fn count_digits(mut n: u16) -> usize {
     let mut digits: usize = 1;
@@ -184,7 +188,7 @@ fn main() {
     // variable to hold counts of each type of feature, eg, "("CDS", 5)"
     let mut feature_map: HashMap<String, usize> = HashMap::new();
     // variable to hold length of the longest feature type, for printing
-    let mut feat_len = 0; 
+    let mut feat_len = 0;
 
     for r in SeqReader::new(file) {
         let seq = r.unwrap();
@@ -197,11 +201,13 @@ fn main() {
         for f in &seq.features {
             feat_count += 1;
 
-            // count the different feature types. if a type hasn't been seen 
+            // count the different feature types. if a type hasn't been seen
             // before, set its value to zero and add 1
             *feature_map.entry(f.kind.to_string()).or_insert(0) += 1;
-            
-            if f.kind.to_string().len() > feat_len { feat_len = f.kind.to_string().len(); }
+
+            if f.kind.to_string().len() > feat_len {
+                feat_len = f.kind.to_string().len();
+            }
 
             // collect protein_id, product, and location data for each "CDS", ie gene
             if f.kind == feature_kind!("CDS") {
@@ -225,25 +231,28 @@ fn main() {
                 gene_count += 1;
             }
         }
-        
+
         println!(
             "\nFound {} features, including {} genes.",
             feat_count, gene_count
         );
 
         for (key, count) in feature_map.iter() {
-            println!("{k:<0l$}: {}", count, k=key, l=feat_len+1);
+            println!("{k:<0l$}: {}", count, k = key, l = feat_len + 1);
         }
 
-        println!("");
+        println!();
         for i in 0..gene_count {
             println!("{}) {}: {}", i, genes[i], descs[i]);
         }
 
         if gene_count > 0 {
             let range = {
-                if gene_count == 1 { "0".to_string() }
-                else { format!("0-{}", gene_count-1) }
+                if gene_count == 1 {
+                    "0".to_string()
+                } else {
+                    format!("0-{}", gene_count - 1)
+                }
             };
             print!("\nWhich gene would you like to view [{}]: ", range);
             // flush buffer...
