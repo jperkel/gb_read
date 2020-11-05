@@ -19,10 +19,11 @@ use regex::Regex;
 // index = (16 * first_base) + (4 * second_base) + third_base
 // So... TTT = 0, TTC = 1, TTA = 2, ... , GGC = 61, GGA = 62, GGG = 63
 const GENETIC_CODE: &str = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
+// some codons can be start used as Met in the start position
+const STARTS: &str = "---M------**--*----M------------MMMM---------------M------------";
 
 // ERR_BAD_NT is an error value for an invalid nucleotide
 const ERR_BAD_NT: usize = 99;
-
 
 // map a base for indexing the GENETIC_CODE string
 // x (char): base to look up
@@ -85,8 +86,9 @@ fn three_letter_code(aa: char) -> String {
 
 // translate a codon into its corresponding amino acid
 // triplet (&str): a three-letter codon eg "ATG"
+// i (usize): codon position. if 0, use the STARTS table
 // returns: char
-fn translate(triplet: &str) -> char {
+fn translate(triplet: &str, i: usize) -> char {
     let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i, base) in triplet.chars().enumerate() {
@@ -101,50 +103,55 @@ fn translate(triplet: &str) -> char {
 
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
     // translate the codon into single-letter code
-    let c = GENETIC_CODE.chars().nth(index).unwrap();
+
+    let c = if (i == 0) && (STARTS.chars().nth(index).unwrap() == 'M') {
+        'M'
+    } else {
+        GENETIC_CODE.chars().nth(index).unwrap()
+    };
 
     c
 }
 
 // print a pretty DNA sequence and its translation, plus line numbering
 // eg: 001 MetSerIle...
-//     001 ATGAGTATT... 
+//     001 ATGAGTATT...
 //
 // s (&str): DNA sequence to print
 fn print_seq(s: &str) {
-    let linelen = 72; // print 72 bases per line (24 amino acids)
+    let line_len = 72; // print 72 bases per line (24 amino acids)
 
     // how many lines to print
-    let mut nlines = s.len() / linelen;
-    // if there's a remainder, add one line.
-    if s.len() % linelen != 0 {
-        nlines += 1;
-    }
+    let n_lines = if s.len() % line_len != 0 {
+        (s.len() / line_len) + 1
+    } else {
+        s.len() / line_len
+    };
 
     // how wide does the numbering block need to be?
-    let ndigits = count_digits(s.len() as u16);
+    let n_digits = count_digits(s.len() as u16);
 
     // get the translation of this sequence
-    let mut peptide3 = String::new();
+    let mut peptide = String::new();
     let n_codons = s.len() / 3;
     for i in 0..n_codons {
         let codon = &s[i * 3..(i * 3) + 3]; // take a 3-base slice of the sequence
-        let aa = translate(&codon);
+        let aa = translate(&codon, i);
         // translate and add to the string
-        peptide3.push_str(&three_letter_code(aa));
+        peptide.push_str(&three_letter_code(aa));
     }
 
-    for i in 0..nlines {
-        let begin = i * linelen;
+    for i in 0..n_lines {
+        let begin = i * line_len;
         // adjust 'end' if near the end of the sequence
-        let end = cmp::min((i * linelen) + linelen, s.len());
-        
+        let end = cmp::min((i * line_len) + line_len, s.len());
+
         // print translation
         println!(
             "{number:>0width$} {}",
-            &peptide3[begin..end],
+            &peptide[begin..end],
             number = (begin / 3) + 1, // divide by 3 b/c 3 bases/amino acid
-            width = ndigits
+            width = n_digits
         );
 
         // print DNA
@@ -152,7 +159,7 @@ fn print_seq(s: &str) {
             "{number:>0width$} {}\n",
             &s[begin..end],
             number = (begin) + 1,
-            width = ndigits
+            width = n_digits
         );
     }
 }
@@ -193,13 +200,11 @@ fn main() {
 
     let file = File::open(filename).unwrap();
 
-    // genes, descs and locs are vectors of Strings to hold gene names,
-    // gene descriptions, and gene locations, respectively
+    // vectors to hold gene names and gene descriptions
     let mut genes = Vec::<String>::new();
     let mut descs = Vec::<String>::new();
-    let mut locs = Vec::<gb_io::seq::Location>::new();
 
-    // a HashMap holding counts of each feature type, eg, "("CDS", 5)"
+    // HashMap holding counts of each feature type, eg, "("CDS", 5)"
     let mut feature_map: HashMap<String, usize> = HashMap::new();
 
     // length of the longest feature type, for printing
@@ -242,7 +247,6 @@ fn main() {
                     .replace('\n', "");
                 descs.push(desc);
 
-                locs.push(f.location.clone());
                 gene_count += 1;
             }
         }
@@ -274,21 +278,21 @@ fn main() {
             io::stdout().flush().unwrap();
 
             // get input...
-            let mut retval = String::new();
+            let mut ret_val = String::new();
             io::stdin()
-                .read_line(&mut retval)
+                .read_line(&mut ret_val)
                 .expect("Failed to read from stdin");
 
             // use trim() to delete the trailing newline ('\n') char
-            retval = retval.trim().to_string();
-            if (retval == "q") || (retval == "Q") {
+            ret_val = ret_val.trim().to_string();
+            if (ret_val == "q") || (ret_val == "Q") {
                 process::exit(0);
             }
 
-            let selection = match retval.parse::<usize>() {
+            let selection = match ret_val.parse::<usize>() {
                 Ok(i) => i, // if good input, just return the number
                 Err(_) => {
-                    println!("Invalid input: '{}'", retval);
+                    println!("Invalid input: '{}'", ret_val);
                     process::exit(1);
                 }
             };
@@ -306,15 +310,16 @@ fn main() {
                         .unwrap()
                         == genes[selection]
                 {
-                    let s =
-                        String::from_utf8(seq.extract_location(&locs[selection]).unwrap().to_vec())
-                            .unwrap()
-                            .to_ascii_uppercase();
+                    let s = String::from_utf8(
+                        seq.extract_location(&f.location.clone()).unwrap().to_vec(),
+                    )
+                    .unwrap()
+                    .to_ascii_uppercase();
 
                     println!("\n{}: {}", genes[selection], descs[selection]);
                     print_seq(&s);
                     println!("DNA:     {:>5} bases", s.len());
-                    println!("Protein: {:>5} amino acids\n", s.len()/3)
+                    println!("Protein: {:>5} amino acids\n", s.len() / 3)
                 }
             }
         }
@@ -328,22 +333,37 @@ mod tests {
 
     #[test]
     fn test_translate_atg() {
-        assert_eq!(translate("ATG"), 'M');
+        assert_eq!(translate("ATG", 1), 'M');
+    }
+
+    #[test]
+    fn test_translate_atg_as_start() {
+        assert_eq!(translate("ATG", 0), 'M');
+    }
+
+    #[test]
+    fn test_translate_gtg() {
+        assert_eq!(translate("GTG", 1), 'V');
+    }
+
+    #[test]
+    fn test_translate_gtg_as_start() {
+        assert_eq!(translate("GTG", 0), 'M');
     }
 
     #[test]
     fn test_translate_tag() {
-        assert_eq!(translate("TAG"), '*');
+        assert_eq!(translate("TAG", 1), '*');
     }
 
     #[test]
     fn test_translate_ttt() {
-        assert_eq!(translate("TTT"), 'F');
+        assert_eq!(translate("TTT", 1), 'F');
     }
 
     #[test]
     fn test_one_to_three_translate() {
-        assert_eq!(three_letter_code(translate("ATG")), "Met");
+        assert_eq!(three_letter_code(translate("ATG", 0)), "Met");
     }
 
     #[test]
@@ -362,7 +382,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_digits() {
+    fn test_count_digits1() {
         assert_eq!(count_digits(10000), 5);
     }
 
