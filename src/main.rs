@@ -269,7 +269,7 @@ fn main() {
                     format!("0-{}", gene_count - 1)
                 }
             };
-            print!("\nWhich gene would you like to view [{}]: ", range);
+            print!("\nSelect a gene number [{}] or 'q' to quit: ", range);
             // flush buffer...
             io::stdout().flush().unwrap();
 
@@ -281,6 +281,9 @@ fn main() {
 
             // use trim() to delete the trailing newline ('\n') char
             retval = retval.trim().to_string();
+            if (retval == "q") || (retval == "Q") {
+                process::exit(0);
+            }
 
             let selection = match retval.parse::<usize>() {
                 Ok(i) => i, // if good input, just return the number
@@ -336,6 +339,11 @@ mod tests {
     #[test]
     fn test_translate_ttt() {
         assert_eq!(translate("TTT"), 'F');
+    }
+
+    #[test]
+    fn test_one_to_three_translate() {
+        assert_eq!(three_letter_code(translate("ATG")), "Met");
     }
 
     #[test]
