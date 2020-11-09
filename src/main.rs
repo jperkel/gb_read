@@ -19,7 +19,7 @@ use regex::Regex;
 // index = (16 * first_base) + (4 * second_base) + third_base
 // So... TTT = 0, TTC = 1, TTA = 2, ... , GGC = 61, GGA = 62, GGG = 63
 const GENETIC_CODE: &str = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
-// some codons can be start used as Met in the start position
+// some codons can be used as Met in the start position
 const STARTS: &str = "---M------**--*----M------------MMMM---------------M------------";
 
 // ERR_BAD_NT is an error value for an invalid nucleotide
