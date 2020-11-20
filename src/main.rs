@@ -86,7 +86,7 @@ static THREE_LETTER_CODE: Lazy<HashMap<char, &'static str>> = Lazy::new(|| {
 fn three_letter_code(aa: char) -> Result<String, Error> {
     // check input.
     match aa {
-        'A'..='Z' => Ok(THREE_LETTER_CODE[&aa].to_string()),
+        'A'..='Z' | '*' => Ok(THREE_LETTER_CODE[&aa].to_string()),
         _ => Err(Error::InvalidAminoAcid(aa)),
     }
 }
@@ -138,7 +138,7 @@ fn print_seq(s: &str) -> Result<(), Error> {
 
     // get the translation of this sequence
     let mut peptide = String::new();
-    for (i, codon) in s.as_bytes().windows(3).enumerate() {
+    for (i, codon) in s.as_bytes().chunks(3).enumerate() {
         let aa = translate(codon, i)?;
         // translate and add to the string
         peptide.push_str(&three_letter_code(aa)?);
