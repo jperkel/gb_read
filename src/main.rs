@@ -1,7 +1,3 @@
-#[macro_use]
-extern crate gb_io;
-extern crate regex;
-
 use std::cmp;
 use std::collections::HashMap;
 use std::env;
@@ -11,25 +7,36 @@ use std::io::Write;
 use std::process;
 
 use gb_io::reader::SeqReader;
-use regex::Regex;
+use gb_io::{feature_kind, qualifier_key};
+use once_cell::sync::Lazy;
 
-// Translation table 11 from https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi.
-// Indexing into this array is as follows:
-// T = 0, C = 1, A = 2, G = 3
-// index = (16 * first_base) + (4 * second_base) + third_base
-// So... TTT = 0, TTC = 1, TTA = 2, ... , GGC = 61, GGA = 62, GGG = 63
-const GENETIC_CODE: &str = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
-// some codons can be used as Met in the start position
-const STARTS: &str = "---M------**--*----M------------MMMM---------------M------------";
+#[derive(thiserror::Error, Debug)]
+enum Error {
+    #[error("Something went wrong in translation! {0:?}")]
+    BadNucleotide(Vec<usize>),
 
-// ERR_BAD_NT is an error value for an invalid nucleotide
+    #[error("Invalid amino acid: {0}")]
+    InvalidAminoAcid(char),
+}
+
+/// Translation table 11 from https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi.
+/// Indexing into this array is as follows:
+/// T = 0, C = 1, A = 2, G = 3
+/// index = (16 * first_base) + (4 * second_base) + third_base
+/// So... TTT = 0, TTC = 1, TTA = 2, ... , GGC = 61, GGA = 62, GGG = 63
+const GENETIC_CODE: &[u8] = b"FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
+
+/// some codons can be used as Met in the start position
+const STARTS: &[u8] = b"---M------**--*----M------------MMMM---------------M------------";
+
+/// ERR_BAD_NT is an error value for an invalid nucleotide
 const ERR_BAD_NT: usize = 99;
 
-// map a base for indexing the GENETIC_CODE string
-// x (char): base to look up
-// returns: usize
-fn lookup(x: char) -> usize {
-    match x {
+/// map a base for indexing the GENETIC_CODE string
+/// x (char): base to look up
+/// returns: usize
+const fn lookup(x: u8) -> usize {
+    match x as char {
         'T' => 0,
         'C' => 1,
         'A' => 2,
@@ -38,11 +45,8 @@ fn lookup(x: char) -> usize {
     }
 }
 
-// get the three-letter equivalent of an amino acid
-// aa (char): the amino acid to translate, eg 'A' -> "Ala"
-// returns: String
-fn three_letter_code(aa: char) -> String {
-    let three_letter_map: HashMap<char, &str> = [
+static THREE_LETTER_CODE: Lazy<HashMap<char, &'static str>> = Lazy::new(|| {
+    [
         ('A', "Ala"),
         ('B', "???"),
         ('C', "Cys"),
@@ -73,52 +77,53 @@ fn three_letter_code(aa: char) -> String {
     ]
     .iter()
     .copied()
-    .collect();
+    .collect()
+});
 
+/// get the three-letter equivalent of an amino acid
+/// aa (char): the amino acid to translate, eg 'A' -> "Ala"
+/// returns: String
+fn three_letter_code(aa: char) -> Result<String, Error> {
     // check input.
-    let re = Regex::new(r"[A-Z*]").unwrap();
-    if !re.is_match(&aa.to_string()) {
-        println!("Invalid amino acid: {}", aa);
-        process::exit(1);
+    match aa {
+        'A'..='Z' => Ok(THREE_LETTER_CODE[&aa].to_string()),
+        _ => Err(Error::InvalidAminoAcid(aa)),
     }
-    three_letter_map[&aa].to_string()
 }
 
-// translate a codon into its corresponding amino acid
-// triplet (&str): a three-letter codon eg "ATG"
-// i (usize): codon position. if 0, use the STARTS table
-// returns: char
-fn translate(triplet: &str, i: usize) -> char {
+/// translate a codon into its corresponding amino acid
+/// triplet (&str): a three-letter codon eg "ATG"
+/// i (usize): codon position. if 0, use the STARTS table
+/// returns: char
+fn translate(triplet: &[u8], i: usize) -> Result<char, Error> {
     let mut codon = vec![ERR_BAD_NT; 3];
 
-    for (i, base) in triplet.chars().enumerate() {
-        codon[i] = lookup(base);
+    for (i, base) in triplet.iter().enumerate() {
+        codon[i] = lookup(*base);
     }
 
     if codon.contains(&ERR_BAD_NT) {
-        println!("Something went wrong in translation!");
-        println!("{:?}", codon);
-        process::exit(1);
+        return Err(Error::BadNucleotide(codon));
     }
 
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
     // translate the codon into single-letter code
 
-    let c = if (i == 0) && (STARTS.chars().nth(index).unwrap() == 'M') {
-        'M'
+    let c = if (i == 0) && (STARTS[index] == b'M') {
+        b'M'
     } else {
-        GENETIC_CODE.chars().nth(index).unwrap()
+        GENETIC_CODE[index]
     };
 
-    c
+    Ok(c as char)
 }
 
-// print a pretty DNA sequence and its translation, plus line numbering
-// eg: 001 MetSerIle...
-//     001 ATGAGTATT...
-//
-// s (&str): DNA sequence to print
-fn print_seq(s: &str) {
+/// print a pretty DNA sequence and its translation, plus line numbering
+/// eg: 001 MetSerIle...
+///     001 ATGAGTATT...
+///
+/// s (&str): DNA sequence to print
+fn print_seq(s: &str) -> Result<(), Error> {
     let line_len = 72; // print 72 bases per line (24 amino acids)
 
     // how many lines to print
@@ -133,12 +138,10 @@ fn print_seq(s: &str) {
 
     // get the translation of this sequence
     let mut peptide = String::new();
-    let n_codons = s.len() / 3;
-    for i in 0..n_codons {
-        let codon = &s[i * 3..(i * 3) + 3]; // take a 3-base slice of the sequence
-        let aa = translate(&codon, i);
+    for (i, codon) in s.as_bytes().windows(3).enumerate() {
+        let aa = translate(codon, i)?;
         // translate and add to the string
-        peptide.push_str(&three_letter_code(aa));
+        peptide.push_str(&three_letter_code(aa)?);
     }
 
     for i in 0..n_lines {
@@ -162,13 +165,15 @@ fn print_seq(s: &str) {
             width = n_digits
         );
     }
+
+    Ok(())
 }
 
-// count the digits in a number
-// n (u16): number to count
-// returns: usize
-//
-// NOTE: n is type u16, so allowable input is 0..65535.
+/// count the digits in a number
+/// n (u16): number to count
+/// returns: usize
+///
+/// NOTE: n is type u16, so allowable input is 0..65535.
 fn count_digits(mut n: u16) -> usize {
     let mut digits: usize = 1;
 
@@ -187,7 +192,7 @@ fn main() {
     let mut filename = "nc_005816.gb";
 
     // check to see if user provided an alternate file name...
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<_> = env::args().collect();
     if args.len() > 1 {
         filename = &args[1];
     }
@@ -201,11 +206,11 @@ fn main() {
     let file = File::open(filename).unwrap();
 
     // vectors to hold gene names and gene descriptions
-    let mut genes = Vec::<String>::new();
-    let mut descs = Vec::<String>::new();
+    let mut genes = vec![];
+    let mut descs = vec![];
 
     // HashMap holding counts of each feature type, eg, "("CDS", 5)"
-    let mut feature_map: HashMap<String, usize> = HashMap::new();
+    let mut feature_map = HashMap::new();
 
     // length of the longest feature type, for printing
     let mut feat_len = 0;
@@ -317,7 +322,7 @@ fn main() {
                     .to_ascii_uppercase();
 
                     println!("\n{}: {}", genes[selection], descs[selection]);
-                    print_seq(&s);
+                    print_seq(&s).unwrap();
                     println!("DNA:     {:>5} bases", s.len());
                     println!("Protein: {:>5} amino acids\n", s.len() / 3)
                 }
@@ -333,52 +338,56 @@ mod tests {
 
     #[test]
     fn test_translate_atg() {
-        assert_eq!(translate("ATG", 1), 'M');
+        assert!(matches!(translate(b"ATG", 1), Ok('M')));
     }
 
     #[test]
     fn test_translate_atg_as_start() {
-        assert_eq!(translate("ATG", 0), 'M');
+        assert!(matches!(translate(b"ATG", 0), Ok('M')));
     }
 
     #[test]
     fn test_translate_gtg() {
-        assert_eq!(translate("GTG", 1), 'V');
+        assert!(matches!(translate(b"GTG", 1), Ok('V')));
     }
 
     #[test]
     fn test_translate_gtg_as_start() {
-        assert_eq!(translate("GTG", 0), 'M');
+        assert!(matches!(translate(b"GTG", 0), Ok('M')));
     }
 
     #[test]
     fn test_translate_tag() {
-        assert_eq!(translate("TAG", 1), '*');
+        assert!(matches!(translate(b"TAG", 1), Ok('*')));
     }
 
     #[test]
     fn test_translate_ttt() {
-        assert_eq!(translate("TTT", 1), 'F');
+        assert!(matches!(translate(b"TTT", 1), Ok('F')));
     }
 
     #[test]
     fn test_one_to_three_translate() {
-        assert_eq!(three_letter_code(translate("ATG", 0)), "Met");
+        assert_eq!(
+            three_letter_code(translate(b"ATG", 0).unwrap()).unwrap(),
+            "Met"
+        );
     }
 
     #[test]
     fn test_translate_pyr() {
-        assert_eq!(three_letter_code('O'), "Pyr");
+        assert_eq!(three_letter_code('O').unwrap(), "Pyr");
+        //assert!(matches!(three_letter_code('O'), Ok("Pyr")));
     }
 
     #[test]
     fn test_translate_sel() {
-        assert_eq!(three_letter_code('U'), "Sel");
+        assert_eq!(three_letter_code('U').unwrap(), "Sel");
     }
 
     #[test]
     fn translate_bad_aa() {
-        assert_eq!(three_letter_code('J'), "???");
+        assert_eq!(three_letter_code('J').unwrap(), "???");
     }
 
     #[test]

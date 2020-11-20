@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 gb-io = "*"
-regex = "1"
+once_cell = "1.5.2"
+thiserror = "1.0.22"
