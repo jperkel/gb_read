@@ -328,7 +328,7 @@ fn main() {
                         Err(e) => {
                             println!("Error: {}", e);
                             process::exit(1);
-                        },
+                        }
                     };
                     println!("DNA:     {:>5} bases", s.len());
                     println!("Protein: {:>5} amino acids (including stop)\n", s.len() / 3)
