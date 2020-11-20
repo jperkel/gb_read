@@ -322,9 +322,16 @@ fn main() {
                     .to_ascii_uppercase();
 
                     println!("\n{}: {}", genes[selection], descs[selection]);
-                    print_seq(&s).unwrap();
+                    // print_seq(&s).expect("Error in print_seq().");
+                    let _ = match print_seq(&s) {
+                        Ok(i) => i,
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            process::exit(1);
+                        },
+                    };
                     println!("DNA:     {:>5} bases", s.len());
-                    println!("Protein: {:>5} amino acids\n", s.len() / 3)
+                    println!("Protein: {:>5} amino acids (including stop)\n", s.len() / 3)
                 }
             }
         }
