@@ -187,6 +187,7 @@ fn count_digits(mut n: u16) -> usize {
     digits
 }
 
+/// main program routine
 fn main() {
     // file to process; user can override on the command line
     let mut filename = "nc_005816.gb";
@@ -234,7 +235,7 @@ fn main() {
                 feat_len = f.kind.to_string().len();
             }
 
-            // collect protein_id, product, and location data for each "CDS", ie gene
+            // collect protein_id and product data for each "CDS", ie gene
             if f.kind == feature_kind!("CDS") {
                 let gene = f
                     .qualifier_values(qualifier_key!("protein_id"))
@@ -338,7 +339,7 @@ fn main() {
     }
 }
 
-// tests
+/// tests
 #[cfg(test)]
 mod tests {
     use super::*;
