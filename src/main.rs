@@ -1,11 +1,11 @@
 use std::cmp;
 use std::collections::HashMap;
-use std::env;
 use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::process;
 
+use clap::{App, Arg};
 use gb_io::reader::SeqReader;
 use gb_io::{feature_kind, qualifier_key};
 use once_cell::sync::Lazy;
@@ -35,12 +35,12 @@ const ERR_BAD_NT: usize = 99;
 /// map a base for indexing the GENETIC_CODE string
 /// x (char): base to look up
 /// returns: usize
-const fn lookup(x: u8) -> usize {
-    match x as char {
-        'T' => 0,
-        'C' => 1,
-        'A' => 2,
-        'G' => 3,
+fn lookup(x: u8) -> usize {
+    match x {
+        65 | 78 => 2,    // A | N 00
+        67 => 1,         // C 01
+        71 => 3,         // G 10
+        84 => 0,         // T 11
         _ => ERR_BAD_NT, // unknown base
     }
 }
@@ -189,14 +189,25 @@ fn count_digits(mut n: u16) -> usize {
 
 /// main program routine
 fn main() {
-    // file to process; user can override on the command line
-    let mut filename = "nc_005816.gb";
+    let matches = App::new("gb_read")
+        .version("1.0")
+        .author("Jeffrey Perkel")
+        .about("Does awesome things")
+        .arg(
+            Arg::with_name("ifile")
+                .short("i")
+                .long("ifile")
+                .value_name("FILE")
+                .help("Path to the user provided file")
+                .takes_value(true),
+        )
+        .get_matches();
 
-    // check to see if user provided an alternate file name...
-    let args: Vec<_> = env::args().collect();
-    if args.len() > 1 {
-        filename = &args[1];
-    }
+    let filename = match matches.value_of("ifile") {
+        None => "nc_005816.gb",
+        Some(file_path) => file_path,
+    };
+
     if !std::path::Path::new(filename).exists() {
         println!("File '{}' does not exist.", filename);
         process::exit(1);
