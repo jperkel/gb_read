@@ -192,18 +192,18 @@ fn main() {
     let matches = App::new("gb_read")
         .version("1.0")
         .author("Jeffrey Perkel")
-        .about("Does awesome things")
+        .about("GenBank file reader in Rust")
         .arg(
-            Arg::with_name("ifile")
+            Arg::with_name("infile")
                 .short("i")
-                .long("ifile")
+                .long("infile")
                 .value_name("FILE")
-                .help("Path to the user provided file")
+                .help("Path to the user-provided file")
                 .takes_value(true),
         )
         .get_matches();
 
-    let filename = match matches.value_of("ifile") {
+    let filename = match matches.value_of("infile") {
         None => "nc_005816.gb",
         Some(file_path) => file_path,
     };
