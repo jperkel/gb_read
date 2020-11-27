@@ -37,10 +37,10 @@ const ERR_BAD_NT: usize = 99;
 /// returns: usize
 fn lookup(x: u8) -> usize {
     match x {
-        65 | 78 => 2,    // A | N 00
-        67 => 1,         // C 01
-        71 => 3,         // G 10
-        84 => 0,         // T 11
+        b'A' | b'N' => 2,    // A | N 00
+        b'C' => 1,         // C 01
+        b'G' => 3,         // G 10
+        b'T' => 0,         // T 11
         _ => ERR_BAD_NT, // unknown base
     }
 }
