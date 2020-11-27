@@ -7,6 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gb-io = "*"
+clap = "2.33.3"
+gb-io = "0.6.0"
 once_cell = "1.5.2"
 thiserror = "1.0.22"
