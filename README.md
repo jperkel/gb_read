@@ -10,3 +10,4 @@ To use:
 3) Build the application. From the command line, execute `cargo run`. (If you do not have gb-io and other required crates installed, this step will do so for you.)
 4) By default, the program will parse the included file [`nc_005816.gb`](https://github.com/jperkel/gb_read/blob/main/nc_005816.gb). However, the user can specify another filename at the command line, eg: ~~`cargo run pbr322`~~[`cargo run -- -i pbr322.gb`](https://github.com/jperkel/gb_read/blob/main/pbr322.gb).
 5) To create and view auto-generated documentation for this project, execute `cargo doc --open`.
+6) To run the program's test suite, execute `cargo test`.
