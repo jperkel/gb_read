@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::Write;
+use std::iter::FromIterator;
 use std::process;
 
 use clap::{App, Arg};
@@ -123,7 +124,7 @@ fn translate(triplet: &[u8], i: usize) -> Result<char, Error> {
 ///     001 ATGAGTATT...
 ///
 /// s (&str): DNA sequence to print
-fn print_seq(s: &str) -> Result<(), Error> {
+fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
     let line_len = 72; // print 72 bases per line (24 amino acids)
 
     // how many lines to print
@@ -141,7 +142,15 @@ fn print_seq(s: &str) -> Result<(), Error> {
     for (i, codon) in s.as_bytes().chunks(3).enumerate() {
         let aa = translate(codon, i)?;
         // translate and add to the string
-        peptide.push_str(&three_letter_code(aa)?);
+        if one_letter {
+            // for one-letter code, insert a space b/w each residue,
+            // ie: Met -> M -> ' M ' 
+            let residue = vec![' ', aa, ' '];
+            peptide.push_str(&String::from_iter(residue));
+        }
+        else {
+            peptide.push_str(&three_letter_code(aa)?);
+        }
     }
 
     for i in 0..n_lines {
@@ -199,9 +208,17 @@ fn main() {
                 .long("infile")
                 .value_name("FILE")
                 .help("Path to the user-provided file")
-                .takes_value(true),
+                .takes_value(true))
+        .arg(
+            Arg::with_name("one-letter")
+                .short("o")
+                .long("one-letter")
+                .takes_value(false)
+                .help("Use single-letter translation"),
         )
         .get_matches();
+
+    let one_letter = matches.is_present("one-letter");
 
     let filename = match matches.value_of("infile") {
         None => "nc_005816.gb",
@@ -335,7 +352,7 @@ fn main() {
 
                     println!("\n{}: {}", genes[selection], descs[selection]);
                     // print_seq(&s).expect("Error in print_seq().");
-                    let _ = match print_seq(&s) {
+                    let _ = match print_seq(&s, one_letter) {
                         Ok(i) => i,
                         Err(e) => {
                             println!("Error: {}", e);
