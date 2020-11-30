@@ -34,7 +34,7 @@ const STARTS: &[u8] = b"---M------**--*----M------------MMMM---------------M----
 const ERR_BAD_NT: usize = 99;
 
 /// map a base for indexing the GENETIC_CODE string
-/// x (char): base to look up
+/// x (u8): base to look up
 /// returns: usize
 fn lookup(x: u8) -> usize {
     match x {
@@ -83,7 +83,7 @@ static THREE_LETTER_CODE: Lazy<HashMap<char, &'static str>> = Lazy::new(|| {
 
 /// get the three-letter equivalent of an amino acid
 /// aa (char): the amino acid to translate, eg 'A' -> "Ala"
-/// returns: String
+/// returns: Result<String, Error>
 fn three_letter_code(aa: char) -> Result<String, Error> {
     // check input.
     match aa {
@@ -93,9 +93,9 @@ fn three_letter_code(aa: char) -> Result<String, Error> {
 }
 
 /// translate a codon into its corresponding amino acid
-/// triplet (&str): a three-letter codon eg "ATG"
+/// triplet (&[u8]): a three-letter codon eg "ATG"
 /// i (usize): codon position. if 0, use the STARTS table
-/// returns: char
+/// returns: Result<char, Error>
 fn translate(triplet: &[u8], i: usize) -> Result<char, Error> {
     let mut codon = vec![ERR_BAD_NT; 3];
 
@@ -124,6 +124,9 @@ fn translate(triplet: &[u8], i: usize) -> Result<char, Error> {
 ///     001 ATGAGTATT...
 ///
 /// s (&str): DNA sequence to print
+/// one_letter (bool): use one-letter amino acid code
+/// 
+/// returns: Result<(), Error>
 fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
     let line_len = 72; // print 72 bases per line (24 amino acids)
 
@@ -144,7 +147,7 @@ fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
         // translate and add to the string
         if one_letter {
             // for one-letter code, insert a space b/w each residue,
-            // ie: Met -> M -> ' M ' 
+            // to match DNA seq. That is, Met -> M -> ' M ' 
             let residue = vec![' ', aa, ' '];
             peptide.push_str(&String::from_iter(residue));
         }
