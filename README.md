@@ -2,7 +2,7 @@
 
 **Update: 26 Nov 2020**: Thanks to a suggestion from [Avi Srivastava](https://github.com/k3yavi), gb_read now uses the [`clap`](https://crates.io/crates/clap) crate for command-line processing. As a result, the syntax for specifying an alternate file on the command line has changed. See step 4 below for details.
 
-This project was created to accompany a *Nature* Toolbox article on the use of Rust in science. It uses the [`gb-io`](https://github.com/dlesl/gb-io) crate for parsing a GenBank-formatted file, counting the genes, and translating them. 
+This project was created to accompany a *Nature* Toolbox article (published 1 Dec 2020) on the use of Rust in science. It uses the [`gb-io`](https://github.com/dlesl/gb-io) crate for parsing a GenBank-formatted file, counting the genes, and translating them. 
 
 To use:
 1) If you have not installed the Rust programming language, do so [here](https://www.rust-lang.org/tools/install). 
