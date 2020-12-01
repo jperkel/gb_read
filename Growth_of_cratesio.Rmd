@@ -1,0 +1,89 @@
+---
+title: "Growth of package repositories"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+```
+
+Given a path (no terminating separator, eg '~' or '~/tmp', NOT '~/tmp/'), file base name (eg 'myanalysis') and file extension (no '.', eg 'csv'), finds an unused filename \path\base-YYYYMMDD-N.ext, where N = 0,1,2,...
+```{r}
+get_usable_filename <- function (path, base, ext) {
+  # remove leading '.' on ext, if provided
+  if (grepl('^\\.', ext)) ext <- substr(ext, 2, nchar(ext))
+  # remove trailing '/' on path, if provided
+  if (grepl('/$', path)) path <- substr(path, 1, nchar(path)-1)
+  
+  index <- 0
+  f <- file.path(path, paste0(base, '-', format(Sys.Date(), format="%Y%m%d"), '-', index, '.', ext))
+  
+  while (file.exists(f)) {
+    index <- index + 1
+    f <- file.path(path, paste0(base, '-', format(Sys.Date(), format="%Y%m%d"), '-', index, '.', ext))
+  }
+  return (f)
+}
+```
+
+Download data from modulecounts.com.
+```{r}
+download_dir <- "~/tmp"
+# save as '~/tmp/modulecounts-YYYYMMDD.csv'
+f <- get_usable_filename(download_dir, "modulecounts", "csv")
+print(paste0("Saving to: ", f))
+download.file("http://www.modulecounts.com/modulecounts.csv", destfile = f)
+```
+
+Read the downloaded data.
+```{r}
+df <- read.csv(f)
+# select the columns we want
+mydf <- df %>% select(c("date","CRAN..R.","Crates.io..Rust.","PyPI")) 
+# rename them
+colnames(mydf) <- c("date","CRAN (R)","Crates.io (Rust)","PyPI (Python)")
+# format date column as <date>
+mydf$date <- as.Date(mydf$date, format="%Y/%m/%d")
+```
+
+Make the data 'tidy' for plotting
+```{r}
+# make data "tidy" for plotting
+mydf <- mydf %>% pivot_longer(!date, names_to = "repository", values_to = "count")
+```
+
+View the resulting table.
+```{r}
+head(mydf, n=10)
+```
+```{r}
+tail(mydf, n=10)
+```
+
+Plot data for 2014-present.
+```{r}
+plot_data <- mydf[mydf$date >= as.Date("2014-01-01"),] 
+p <- ggplot(plot_data) +
+  geom_line(aes(x=date, y=count, color=repository), size=1) + 
+  labs(title="Growth of package repositories, 2014-present",
+       caption="Source: http://www.modulecounts.com/")
+p
+f <- get_usable_filename(download_dir, "crates_io", "jpg")
+print(paste0("Saving image to: ", f))
+ggsave(f)
+
+f <- get_usable_filename(download_dir, "crates_io_plotted_data", "csv")
+print(paste0("Saving CSV to: ", f))
+write_csv(plot_data, f)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
