@@ -12,3 +12,5 @@ To use:
 5) By default, the program uses a three-letter amino acid code (e.g., Met for methionine). Use `-o` to use a one-character code instead, e.g., `cargo run -- -o -i pbr322.gb`.  
 6) To create and view auto-generated documentation for this project, execute `cargo doc --open`.  
 7) To run the program's test suite, execute `cargo test`.  
+
+The R Markdown notebook, [Growth_of_cratesio.Rmd](https://github.com/jperkel/gb_read/blob/main/Growth_of_cratesio.Rmd), recreates the "Rust rising" graphic included in the article.
