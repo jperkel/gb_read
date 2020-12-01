@@ -251,7 +251,7 @@ fn main() {
     let mut feat_len = 0;
 
     for r in SeqReader::new(file) {
-        let seq = r.unwrap();
+        let seq = r.expect("Error: Problem reading file!");
         let mut gene_count = 0;
         let mut feat_count = 0;
         let record_name = seq.name.clone().unwrap();
