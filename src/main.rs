@@ -142,7 +142,8 @@ fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
 
     // get the translation of this sequence
     let mut peptide = String::new();
-    for (i, codon) in s.as_bytes().chunks(3).enumerate() {
+    // use chunks_exact() in case a sequence ends on a partial-length codon
+    for (i, codon) in s.as_bytes().chunks_exact(3).enumerate() {
         let aa = translate(codon, i)?;
         // translate and add to the string
         if one_letter {
@@ -158,13 +159,15 @@ fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
 
     for i in 0..n_lines {
         let begin = i * line_len;
-        // adjust 'end' if near the end of the sequence
-        let end = cmp::min((i * line_len) + line_len, s.len());
+        // adjust 'dna_end' if near the end of the sequence
+        let dna_end = cmp::min((i * line_len) + line_len, s.len());
+        // calc pept_end separately in case seq length is not divisible by 3
+        let pept_end = cmp::min((i * line_len) + line_len, peptide.len());
 
         // print translation
         println!(
             "{number:>0width$} {}",
-            &peptide[begin..end],
+            &peptide[begin..pept_end],
             number = (begin / 3) + 1, // divide by 3 b/c 3 bases/amino acid
             width = n_digits
         );
@@ -172,7 +175,7 @@ fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
         // print DNA
         println!(
             "{number:>0width$} {}\n",
-            &s[begin..end],
+            &s[begin..dna_end],
             number = (begin) + 1,
             width = n_digits
         );
@@ -271,7 +274,7 @@ fn main() {
                 let gene = f
                     .qualifier_values(qualifier_key!("protein_id"))
                     .next()
-                    .unwrap()
+                    .expect("Error: No protein_id found!")
                     .to_string()
                     .replace('\n', "");
                 genes.push(gene);
@@ -279,7 +282,7 @@ fn main() {
                 let desc = f
                     .qualifier_values(qualifier_key!("product"))
                     .next()
-                    .unwrap()
+                    .expect("Error: No product key found!")
                     .to_string()
                     .replace('\n', "");
                 descs.push(desc);
