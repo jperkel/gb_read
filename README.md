@@ -13,4 +13,4 @@ To use:
 6) To create and view auto-generated documentation for this project, execute `cargo doc --open`.  
 7) To run the program's test suite, execute `cargo test`.  
 
-The R Markdown notebook, [Growth_of_cratesio.Rmd](https://github.com/jperkel/gb_read/blob/main/Growth_of_cratesio.Rmd), recreates the "Rust rising" graphic included in the article.
+The R Markdown notebook, [Growth_of_cratesio.Rmd](https://github.com/jperkel/gb_read/blob/main/Growth_of_cratesio.Rmd), recreates the "[Rust rising](https://media.nature.com/lw800/magazine-assets/d41586-020-03382-2/d41586-020-03382-2_18629102.png)" graphic included in the article.
