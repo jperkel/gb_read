@@ -94,9 +94,9 @@ fn three_letter_code(aa: char) -> Result<String, Error> {
 
 /// translate a codon into its corresponding amino acid
 /// triplet (&[u8]): a three-letter codon eg "ATG"
-/// i (usize): codon position. if 0, use the STARTS table
+/// pos (usize): codon position. if 0, use the STARTS table
 /// returns: Result<char, Error>
-fn translate(triplet: &[u8], i: usize) -> Result<char, Error> {
+fn translate(triplet: &[u8], pos: usize) -> Result<char, Error> {
     let mut codon = vec![ERR_BAD_NT; 3];
 
     for (i, base) in triplet.iter().enumerate() {
@@ -110,7 +110,7 @@ fn translate(triplet: &[u8], i: usize) -> Result<char, Error> {
     let index: usize = (codon[0] * 16) + (codon[1] * 4) + codon[2];
     // translate the codon into single-letter code
 
-    let c = if (i == 0) && (STARTS[index] == b'M') {
+    let c = if (pos == 0) && (STARTS[index] == b'M') {
         b'M'
     } else {
         GENETIC_CODE[index]
