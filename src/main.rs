@@ -38,11 +38,11 @@ const ERR_BAD_NT: usize = 99;
 /// returns: usize
 fn lookup(x: u8) -> usize {
     match x {
-        b'T' => 0,          // T 00
-        b'C' => 1,          // C 01
-        b'A' | b'N' => 2,   // A | N 10
-        b'G' => 3,          // G 11
-        _ => ERR_BAD_NT,    // unknown base
+        b'T' => 0,        // T 00
+        b'C' => 1,        // C 01
+        b'A' | b'N' => 2, // A | N 10
+        b'G' => 3,        // G 11
+        _ => ERR_BAD_NT,  // unknown base
     }
 }
 
@@ -125,7 +125,7 @@ fn translate(triplet: &[u8], pos: usize) -> Result<char, Error> {
 ///
 /// s (&str): DNA sequence to print
 /// one_letter (bool): use one-letter amino acid code
-/// 
+///
 /// returns: Result<(), Error>
 fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
     let line_len = 72; // print 72 bases per line (24 amino acids)
@@ -148,11 +148,10 @@ fn print_seq(s: &str, one_letter: bool) -> Result<(), Error> {
         // translate and add to the string
         if one_letter {
             // for one-letter code, insert a space b/w each residue,
-            // to match DNA seq. That is, Met -> M -> ' M ' 
+            // to match DNA seq. That is, Met -> M -> ' M '
             let residue = vec![' ', aa, ' '];
             peptide.push_str(&String::from_iter(residue));
-        }
-        else {
+        } else {
             peptide.push_str(&three_letter_code(aa)?);
         }
     }
@@ -214,7 +213,8 @@ fn main() {
                 .long("infile")
                 .value_name("FILE")
                 .help("Path to the user-provided file")
-                .takes_value(true))
+                .takes_value(true),
+        )
         .arg(
             Arg::with_name("one-letter")
                 .short("o")
@@ -226,10 +226,7 @@ fn main() {
 
     let one_letter = matches.is_present("one-letter");
 
-    let filename = match matches.value_of("infile") {
-        None => "nc_005816.gb",
-        Some(file_path) => file_path,
-    };
+    let filename = matches.value_of("infile").unwrap_or("nc_005816.gb");
 
     if !std::path::Path::new(filename).exists() {
         println!("File '{}' does not exist.", filename);
